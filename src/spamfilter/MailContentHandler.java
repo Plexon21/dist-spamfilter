@@ -77,7 +77,7 @@ public class MailContentHandler extends SimpleContentHandler
     }
 	
 	// convert InputStream to String (source: http://www.mkyong.com/java/how-to-convert-inputstream-to-string-in-java/)
-		private static String getStringFromInputStream(InputStream is) {
+		public static String getStringFromInputStream(InputStream is) {
 
 			BufferedReader br = null;
 			StringBuilder sb = new StringBuilder();

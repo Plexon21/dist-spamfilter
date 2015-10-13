@@ -5,10 +5,13 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Scanner;
 
 import org.apache.james.mime4j.MimeException;
 import org.apache.james.mime4j.parser.MimeStreamParser;
 import org.apache.james.mime4j.stream.MimeConfig;
+
+import com.sun.net.ssl.internal.www.protocol.https.Handler;
 
 public class MailReader {
     private final String HAM = "ham";
@@ -143,7 +146,21 @@ public class MailReader {
 
         return percent;
     }
+    public boolean readTest(Stats stats, File mail) throws IOException{
+    	this.readSingleMail(mail);
 
+        List<Tuple> topN = this.stats.getTopSpam(this.TOP_N);
+
+        String[] topWords = MailReader.tupleToString(topN, this.TOP_N);
+
+//        double spamProbability = stats.calcSpam((String[]) stats.getWords().toArray());
+        double spamProbability = stats.calcSpam(this.stats.getWords());
+
+        if (spamProbability >= this.CERTAINTY) {
+            return true;
+        }
+        return false;
+    }
     public void readHamTest(Stats stats) throws IOException {
         this.handler.setToHAMMode();
 
@@ -334,6 +351,21 @@ public class MailReader {
 
         reader.readHamTest(stats);
         reader.readSpamTest(stats);
+        
+        System.out.println("Enter Filename for E-Mail to check");
+        Scanner scanner = new Scanner(System.in);
+        String filename = scanner.nextLine();
+        if(reader.readTest(stats, new File(filename))){
+        	System.out.println("Spam");
+        }
+        else{
+        	System.out.println("Ham");
+        }
+        
+        scanner.close();
+        
+        
+        
 
         // // reader.readSpamKalibration();
         // // reader.readSpamTest();
