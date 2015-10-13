@@ -73,7 +73,7 @@ public class MailContentHandler extends SimpleContentHandler
 //		System.out.println(plainText);
 		this.read(plainText);
 		
-        
+		
     }
 	
 	// convert InputStream to String (source: http://www.mkyong.com/java/how-to-convert-inputstream-to-string-in-java/)

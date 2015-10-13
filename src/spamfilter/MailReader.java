@@ -14,387 +14,434 @@ import org.apache.james.mime4j.stream.MimeConfig;
 import com.sun.net.ssl.internal.www.protocol.https.Handler;
 
 public class MailReader {
-    private final String HAM = "ham";
-    private final String SPAM = "spam";
+	private final String HAM = "ham";
+	private final String SPAM = "spam";
 
-    private final String ANLERN = "anlern";
-    private final String KALIB = "kallibrierung";
-    private final String TEST = "test";
+	private final String ANLERN = "anlern";
+	private final String KALIB = "kallibrierung";
+	private final String TEST = "test";
 
-    private Stats stats;
-    private final int TOP_N = 10;
-    private final double CERTAINTY = 0.9;
+	private Stats stats;
+	private final int TOP_N = 10;
+	private final double CERTAINTY = 0.9;
 
-    private MailContentHandler handler;
-    private MimeStreamParser parser;
+	private MailContentHandler handler;
+	private MimeStreamParser parser;
 
-    private final int MAX_CALIBRATION_ITERATIONS = 10; //100
-    private final double STEPS = 0.00001;// 0.00001;//0.001;
+	private final int MAX_CALIBRATION_ITERATIONS = 10; // 100
+	private final double STEPS = 0.00001;// 0.00001;//0.001;
 
-    /**
-     * 
-     * @param stats Stats for the learningset
-     */
-    public MailReader(Stats stats) {
-        this.stats = stats;
+	/**
+	 * 
+	 * @param stats
+	 *            Stats for the learningset
+	 */
+	public MailReader(Stats stats) {
+		this.stats = stats;
 
-        this.handler = new MailContentHandler(this.stats);
-        MimeConfig config = new MimeConfig();
-        this.parser = new MimeStreamParser(config);
+		this.handler = new MailContentHandler(this.stats);
+		MimeConfig config = new MimeConfig();
+		this.parser = new MimeStreamParser(config);
 
-        parser.setContentHandler(this.handler);
-    }
+		parser.setContentHandler(this.handler);
+	}
 
-    public void setStats(Stats stats) {
-        this.stats = stats;
-        this.handler.setStats(stats);
+	public void setStats(Stats stats) {
+		this.stats = stats;
+		this.handler.setStats(stats);
 
-        this.parser.setContentHandler(this.handler);
-    }
+		this.parser.setContentHandler(this.handler);
+	}
 
-    public void readHamAnlern() throws IOException {
-        this.handler.setToHAMMode();
+	public void readHamAnlern() throws IOException {
+		this.handler.setToHAMMode();
 
-        int size = this.readMails(this.HAM, this.ANLERN);
-        this.stats.setHamSize(size);
+		int size = this.readMails(this.HAM, this.ANLERN);
+		this.stats.setHamSize(size);
 
-        // this.stats.showTopHam(this.TOP_N);
-    }
+		// this.stats.showTopHam(this.TOP_N);
+	}
 
-    public void readSpamAnlern() throws IOException {
-        this.handler.setToSPAMMode();
+	public void readSpamAnlern() throws IOException {
+		this.handler.setToSPAMMode();
 
-        int size = this.readMails(this.SPAM, this.ANLERN);
-        this.stats.setSpamSize(size);
+		int size = this.readMails(this.SPAM, this.ANLERN);
+		this.stats.setSpamSize(size);
 
-        // this.stats.showTopSpam(this.TOP_N);
-    }
+		// this.stats.showTopSpam(this.TOP_N);
+	}
 
-    /**
-     * 
-     * @param stats
-     * @return probability of correct classified ham mails as ham
-     * @throws IOException
-     */
-    public double readHamKalibration(Stats stats) throws IOException {
-        this.handler.setToHAMMode();
+	/**
+	 * 
+	 * @param stats
+	 * @return probability of correct classified ham mails as ham
+	 * @throws IOException
+	 */
+	public double readHamKalibration(Stats stats) throws IOException {
+		this.handler.setToHAMMode();
 
-        File[] mails = this.getMails(this.HAM, this.KALIB);
+		File[] mails = this.getMails(this.HAM, this.KALIB);
 
-        int counter = 0;
+		int counter = 0;
 
-        for (File mail : mails) {
-            this.readSingleMail(mail);
+		for (File mail : mails) {
+			this.readSingleMail(mail);
 
-            // List<Tuple> topN = this.stats.getTopHam(this.TOP_N);
-            //
-            // String[] topWords = MailReader.tupleToString(topN, this.TOP_N);
+			// List<Tuple> topN = this.stats.getTopHam(this.TOP_N);
+			//
+			// String[] topWords = MailReader.tupleToString(topN, this.TOP_N);
 
-//            double hamProbability = stats.calcHam((String[]) stats.getWords().toArray());
-          double hamProbability = stats.calcHam(this.stats.getWords());
+			// double hamProbability = stats.calcHam((String[])
+			// stats.getWords().toArray());
+			double hamProbability = stats.calcHam(this.stats.getWords());
 
-            if (hamProbability >= this.CERTAINTY) {
-                counter++;
-            }
+			if (hamProbability >= this.CERTAINTY) {
+				counter++;
+			}
 
-            this.stats.clear();
-        }
+			this.stats.clear();
+		}
 
-        double percent = (100.0 / mails.length) * counter;
+		double percent = (100.0 / mails.length) * counter;
 
-        System.out.println("CALIBRATION (HAM): " + counter + " out of " + mails.length
-                + " were classfied correctly as ham. -> " + percent + "%");
+		System.out.println("CALIBRATION (HAM): " + counter + " out of " + mails.length
+				+ " were classfied correctly as ham. -> " + percent + "%");
 
-        return percent;
-    }
+		return percent;
+	}
 
-    /**
-     * 
-     * @param stats
-     * @return probability of correct classified spam mails as spam
-     * @throws IOException
-     */
-    public double readSpamKalibration(Stats stats) throws IOException {
-        this.handler.setToSPAMMode();
+	/**
+	 * 
+	 * @param stats
+	 * @return probability of correct classified spam mails as spam
+	 * @throws IOException
+	 */
+	public double readSpamKalibration(Stats stats) throws IOException {
+		this.handler.setToSPAMMode();
 
-        File[] mails = this.getMails(this.SPAM, this.KALIB);
+		File[] mails = this.getMails(this.SPAM, this.KALIB);
 
-        int counter = 0;
+		int counter = 0;
 
-        for (File mail : mails) {
-            this.readSingleMail(mail);
+		for (File mail : mails) {
+			this.readSingleMail(mail);
 
-            // List<Tuple> topN = this.stats.getTopSpam(this.TOP_N);
-            //
-            // String[] topWords = MailReader.tupleToString(topN, this.TOP_N);
+			// List<Tuple> topN = this.stats.getTopSpam(this.TOP_N);
+			//
+			// String[] topWords = MailReader.tupleToString(topN, this.TOP_N);
 
-//            double spamProbability = stats.calcSpam((String[]) stats.getWords().toArray());
-            double spamProbability = stats.calcSpam(this.stats.getWords());
+			// double spamProbability = stats.calcSpam((String[])
+			// stats.getWords().toArray());
+			double spamProbability = stats.calcSpam(this.stats.getWords());
 
+			if (spamProbability >= this.CERTAINTY) {
+				counter++;
+			}
 
-            if (spamProbability >= this.CERTAINTY) {
-                counter++;
-            }
+			this.stats.clear();
+		}
 
-            this.stats.clear();
-        }
+		double percent = (100.0 / mails.length) * counter;
 
-        double percent = (100.0 / mails.length) * counter;
+		System.out.println("CALIBRATION (SPAM): " + counter + " out of " + mails.length
+				+ " were classfied correctly as spam. -> " + percent + "%");
 
-        System.out.println("CALIBRATION (SPAM): " + counter + " out of " + mails.length
-                + " were classfied correctly as spam. -> " + percent + "%");
+		return percent;
+	}
 
-        return percent;
-    }
-    public boolean readTest(Stats stats, File mail) throws IOException{
-    	this.readSingleMail(mail);
+	public double readTest(Stats stats, File mail) throws IOException {
 
-        List<Tuple> topN = this.stats.getTopSpam(this.TOP_N);
+		this.readSingleMail(mail);
 
-        String[] topWords = MailReader.tupleToString(topN, this.TOP_N);
+		List<Tuple> topN = this.stats.getTopSpam(this.TOP_N);
 
-//        double spamProbability = stats.calcSpam((String[]) stats.getWords().toArray());
-        double spamProbability = stats.calcSpam(this.stats.getWords());
+		String[] topWords = MailReader.tupleToString(topN, this.TOP_N);
 
-        if (spamProbability >= this.CERTAINTY) {
-            return true;
-        }
-        return false;
-    }
-    public void readHamTest(Stats stats) throws IOException {
-        this.handler.setToHAMMode();
+		// double spamProbability = stats.calcSpam((String[])
+		// stats.getWords().toArray());
+		double spamProbability = stats.calcSpam(this.stats.getWords());
 
-        File[] mails = this.getMails(this.HAM, this.TEST);
+		return spamProbability * 100;
+	}
 
-        int counter = 0;
+	public void readHamTest(Stats stats) throws IOException {
+		this.handler.setToHAMMode();
 
-        for (File mail : mails) {
-            this.readSingleMail(mail);
+		File[] mails = this.getMails(this.HAM, this.TEST);
 
-            List<Tuple> topN = this.stats.getTopHam(this.TOP_N);
+		int counter = 0;
 
-            String[] topWords = MailReader.tupleToString(topN, this.TOP_N);
+		for (File mail : mails) {
+			this.readSingleMail(mail);
 
-//            double hamProbability = stats.calcHam((String[]) stats.getWords().toArray());
-            double hamProbability = stats.calcHam(this.stats.getWords());
+			List<Tuple> topN = this.stats.getTopHam(this.TOP_N);
 
-            
-            if (hamProbability >= this.CERTAINTY) {
-                counter++;
-            }
+			String[] topWords = MailReader.tupleToString(topN, this.TOP_N);
 
-            this.stats.clear();
-        }
+			// double hamProbability = stats.calcHam((String[])
+			// stats.getWords().toArray());
+			double hamProbability = stats.calcHam(this.stats.getWords());
 
-        double percent = (100.0 / mails.length) * counter;
+			if (hamProbability >= this.CERTAINTY) {
+				counter++;
+			}
 
-        System.out.println("TEST (HAM): " + counter + " out of " + mails.length
-                + " were classfied correctly as ham. -> " + percent + "%");
+			this.stats.clear();
+		}
 
-    }
+		double percent = (100.0 / mails.length) * counter;
 
-    public void readSpamTest(Stats stats) throws IOException {
-        this.handler.setToSPAMMode();
+		System.out.println("TEST (HAM): " + counter + " out of " + mails.length
+				+ " were classfied correctly as ham. -> " + percent + "%");
 
-        File[] mails = this.getMails(this.SPAM, this.TEST);
+	}
 
-        int counter = 0;
+	public void readSingleHam(Stats stats, File mail) throws IOException {
+		this.handler.setToHAMMode();
+		this.readSingleMail(mail);
 
-        for (File mail : mails) {
-            this.readSingleMail(mail);
+		List<Tuple> topN = this.stats.getTopHam(this.TOP_N);
 
-            List<Tuple> topN = this.stats.getTopSpam(this.TOP_N);
+		String[] topWords = MailReader.tupleToString(topN, this.TOP_N);
 
-            String[] topWords = MailReader.tupleToString(topN, this.TOP_N);
+		// double hamProbability = stats.calcHam((String[])
+		// stats.getWords().toArray());
+		double hamProbability = stats.calcHam(this.stats.getWords());
 
-//            double spamProbability = stats.calcSpam((String[]) stats.getWords().toArray());
-            double spamProbability = stats.calcSpam(this.stats.getWords());
+		if (hamProbability >= this.CERTAINTY) {
+		}
 
-            if (spamProbability >= this.CERTAINTY) {
-                counter++;
-            }
+		this.stats.clear();
+	}
 
-            this.stats.clear();
-        }
+	public void readSingleSpam(Stats stats, File mail) throws IOException {
+		this.handler.setToSPAMMode();
+		this.readSingleMail(mail);
 
-        double percent = (100.0 / mails.length) * counter;
+		List<Tuple> topN = this.stats.getTopSpam(this.TOP_N);
 
-        System.out.println("TEST (SPAM): " + counter + " out of " + mails.length
-                + " were classfied correctly as spam. -> " + percent + "%");
+		String[] topWords = MailReader.tupleToString(topN, this.TOP_N);
 
-    }
+		// double spamProbability = stats.calcSpam((String[])
+		// stats.getWords().toArray());
+		double spamProbability = stats.calcSpam(this.stats.getWords());
 
-    public void calibrateSpam(Stats stats, double epsilon) throws IOException {
-        int counter = 0;
+		if (spamProbability >= this.CERTAINTY) {
+		}
 
-        double percent = this.readSpamKalibration(stats);
-        double delta = Double.MAX_VALUE;
-        double alpha = 0;
+		this.stats.clear();
+	}
 
-        while (delta > epsilon && counter < this.MAX_CALIBRATION_ITERATIONS) {
-            alpha = stats.getHamAlpha();
-            stats.setHamAlpha(alpha - this.STEPS);
+	public void readSpamTest(Stats stats) throws IOException {
+		this.handler.setToSPAMMode();
 
-            double percent2 = this.readSpamKalibration(stats);
+		File[] mails = this.getMails(this.SPAM, this.TEST);
 
-            delta = Math.abs(percent - percent2); // FIXME
-            if (delta == 0) {
-                delta = 2 * epsilon;
-            }
+		int counter = 0;
 
-            percent = percent2;
+		for (File mail : mails) {
+			this.readSingleMail(mail);
 
-            counter++;
-        }
+			List<Tuple> topN = this.stats.getTopSpam(this.TOP_N);
 
-        System.out.println("Best alpha for spam: " + alpha + " -> " + percent + "%");
-    }
+			String[] topWords = MailReader.tupleToString(topN, this.TOP_N);
 
-    public void calibrateHam(Stats stats, double epsilon) throws IOException {
-        int counter = 0;
+			// double spamProbability = stats.calcSpam((String[])
+			// stats.getWords().toArray());
+			double spamProbability = stats.calcSpam(this.stats.getWords());
 
-        double percent = this.readHamKalibration(stats);
-        double delta = Double.MAX_VALUE;
-        double alpha = 0;
+			if (spamProbability >= this.CERTAINTY) {
+				counter++;
+			}
 
-        while (delta > epsilon && counter < this.MAX_CALIBRATION_ITERATIONS) {
-            alpha = stats.getSpamAlpha();
-            // System.out.println("SPAM ALPHA: " + alpha);
-            stats.setSpamAlpha(alpha - this.STEPS);
+			this.stats.clear();
+		}
 
-            double percent2 = this.readHamKalibration(stats);
+		double percent = (100.0 / mails.length) * counter;
 
-            delta = Math.abs(percent - percent2); // FIXME
-            percent = percent2;
-            if (delta == 0) {
-                delta = 2 * epsilon;
-            }
+		System.out.println("TEST (SPAM): " + counter + " out of " + mails.length
+				+ " were classfied correctly as spam. -> " + percent + "%");
 
-            // System.out.println("calib ham " + counter + " delta: " + delta +" epsilon: " +
-            // epsilon);
+	}
 
-            counter++;
-        }
+	public void calibrateSpam(Stats stats, double epsilon) throws IOException {
+		int counter = 0;
 
-        // System.out.println("Delta>e: " + delta +" > " + epsilon + " counter<max_it: " + counter +
-        // "<" + this.MAX_CALIBRATION_ITERATIONS);
-        System.out.println("Best alpha for ham: " + alpha + " -> " + percent + "%");
-    }
+		double percent = this.readSpamKalibration(stats);
+		double delta = Double.MAX_VALUE;
+		double alpha = 0;
 
-    private void readSingleMail(File mail) throws IOException {
-        InputStream inStream = new FileInputStream(mail);
+		while (delta > epsilon && counter < this.MAX_CALIBRATION_ITERATIONS) {
+			alpha = stats.getHamAlpha();
+			stats.setHamAlpha(alpha - this.STEPS);
 
-        try {
-            this.parser.parse(inStream);
-        } catch (MimeException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } finally {
-            inStream.close();
-        }
-    }
+			double percent2 = this.readSpamKalibration(stats);
 
-    private File[] getMails(String type, String function) {
-        return new File(type + "-" + function).listFiles();
-    }
+			delta = Math.abs(percent - percent2); // FIXME
+			if (delta == 0) {
+				delta = 2 * epsilon;
+			}
 
-    private int readMails(String type, String function) throws IOException {
-        File[] files = getMails(type, function);
+			percent = percent2;
 
-        for (File f : files) {
-            this.readSingleMail(f);
-        }
+			counter++;
+		}
 
-        return files.length;
-    }
+		System.out.println("Best alpha for spam: " + alpha + " -> " + percent + "%");
+	}
 
-    // ////////
-    // MAIL //
-    // ////////
+	public void calibrateHam(Stats stats, double epsilon) throws IOException {
+		int counter = 0;
 
-    public static void main(String[] args) throws IOException {
-        Stats stats = new Stats();
-        Stats kalibStats = new Stats();
-        Stats testStats = new Stats();
+		double percent = this.readHamKalibration(stats);
+		double delta = Double.MAX_VALUE;
+		double alpha = 0;
 
-        int max = 10;
+		while (delta > epsilon && counter < this.MAX_CALIBRATION_ITERATIONS) {
+			alpha = stats.getSpamAlpha();
+			// System.out.println("SPAM ALPHA: " + alpha);
+			stats.setSpamAlpha(alpha - this.STEPS);
 
-        MailReader reader = new MailReader(stats);
+			double percent2 = this.readHamKalibration(stats);
 
-        // Learn
-        reader.readHamAnlern();
-        reader.readSpamAnlern();
+			delta = Math.abs(percent - percent2); // FIXME
+			percent = percent2;
+			if (delta == 0) {
+				delta = 2 * epsilon;
+			}
 
-        // Test
-        System.out.println("**** BEFORE CALIBRATION ****");
-        reader.setStats(testStats);
+			// System.out.println("calib ham " + counter + " delta: " + delta +"
+			// epsilon: " +
+			// epsilon);
 
-        reader.readHamTest(stats);
-        reader.readSpamTest(stats);
+			counter++;
+		}
 
-        // Calibration
-        reader.setStats(kalibStats);
+		// System.out.println("Delta>e: " + delta +" > " + epsilon + "
+		// counter<max_it: " + counter +
+		// "<" + this.MAX_CALIBRATION_ITERATIONS);
+		System.out.println("Best alpha for ham: " + alpha + " -> " + percent + "%");
+	}
 
-        double epsilon = 0.01;
-        reader.calibrateHam(stats, epsilon);
-        reader.calibrateSpam(stats, epsilon);
-        //
-        // reader.readHamKalibration(stats);
-        // reader.readSpamKalibration(stats);
+	private void readSingleMail(File mail) throws IOException {
+		InputStream inStream = new FileInputStream(mail);
 
-        // Test
-        System.out.println("**** AFTER CALIBRATION ****");
-        reader.setStats(testStats);
+		try {
+			this.parser.parse(inStream);
+		} catch (MimeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+			inStream.close();
+		}
+	}
 
-        reader.readHamTest(stats);
-        reader.readSpamTest(stats);
-        
-        System.out.println("Enter Filename for E-Mail to check");
-        Scanner scanner = new Scanner(System.in);
-        String filename = scanner.nextLine();
-        if(reader.readTest(stats, new File(filename))){
-        	System.out.println("Spam");
-        }
-        else{
-        	System.out.println("Ham");
-        }
-        
-        scanner.close();
-        
-        
-        
+	private File[] getMails(String type, String function) {
+		return new File(type + "-" + function).listFiles();
+	}
 
-        // // reader.readSpamKalibration();
-        // // reader.readSpamTest();
-        //
-        // int max = 10;
-        // List<Tuple> nHam = stats.getTopHam(max);
-        //
-        // String[] hams = new String[max];
-        //
-        // int i=0;
-        // for(Tuple tuple:nHam)
-        // {
-        // hams[i] = tuple.getWord();
-        // i++;
-        // }
-        //
-        // System.out.println("hams: " + stats.calcSpam(hams));
-    }
+	private int readMails(String type, String function) throws IOException {
+		File[] files = getMails(type, function);
 
-    public static String[] tupleToString(List<Tuple> tuples, int max) {
-        String[] words = new String[max];
+		for (File f : files) {
+			this.readSingleMail(f);
+		}
 
-        int i = 0;
-        for (Tuple tuple : tuples) {
-            words[i] = tuple.getWord();
-            i++;
-        }
+		return files.length;
+	}
 
-        return words;
-    }
+	// ////////
+	// MAIL //
+	// ////////
+
+	public static void main(String[] args) throws IOException {
+		Stats stats = new Stats();
+		Stats kalibStats = new Stats();
+		Stats testStats = new Stats();
+		Stats customStats = new Stats();
+
+		int max = 10;
+
+		MailReader reader = new MailReader(stats);
+
+		// Learn
+		reader.readHamAnlern();
+		reader.readSpamAnlern();
+
+		// Test
+		System.out.println("**** BEFORE CALIBRATION ****");
+		reader.setStats(testStats);
+
+		reader.readHamTest(stats);
+		reader.readSpamTest(stats);
+
+		// Calibration
+		reader.setStats(kalibStats);
+
+		double epsilon = 0.01;
+		reader.calibrateHam(stats, epsilon);
+		reader.calibrateSpam(stats, epsilon);
+		//
+		// reader.readHamKalibration(stats);
+		// reader.readSpamKalibration(stats);
+
+		// Test
+		System.out.println("**** AFTER CALIBRATION ****");
+		reader.setStats(testStats);
+
+		reader.readHamTest(stats);
+		reader.readSpamTest(stats);
+
+		reader.setStats(customStats);
+
+		System.out.println("Enter Filename for E-Mail to check");
+		Scanner scanner = new Scanner(System.in);
+		String filename = scanner.nextLine();
+		double spamProbability = reader.readTest(stats, new File(filename));
+
+		System.out.println("Spamprobability: " + spamProbability + "%");
+		System.out.println("Was this mail spam? (y/n");
+		String answer = scanner.nextLine();
+		switch (answer) {
+		case "y":
+			reader.readSingleSpam(customStats, new File(filename));
+		case "n":
+			reader.readSingleHam(customStats, new File(filename));
+		default:
+		}
+		scanner.close();
+
+		// // reader.readSpamKalibration();
+		// // reader.readSpamTest();
+		//
+		// int max = 10;
+		// List<Tuple> nHam = stats.getTopHam(max);
+		//
+		// String[] hams = new String[max];
+		//
+		// int i=0;
+		// for(Tuple tuple:nHam)
+		// {
+		// hams[i] = tuple.getWord();
+		// i++;
+		// }
+		//
+		// System.out.println("hams: " + stats.calcSpam(hams));
+	}
+
+	public static String[] tupleToString(List<Tuple> tuples, int max) {
+		String[] words = new String[max];
+
+		int i = 0;
+		for (Tuple tuple : tuples) {
+			words[i] = tuple.getWord();
+			i++;
+		}
+
+		return words;
+	}
 
 }
