@@ -1,6 +1,8 @@
 package spamfilter;
 
+import java.awt.geom.RoundRectangle2D;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -169,21 +171,37 @@ public class Stats {
     public double calcHam(String[] words) {
 
         BigDecimal a = new BigDecimal(1);
-        double b1 = 1;
-        double b2 = 1;
+//        double b1 = 1;
+//        double b2 = 1;
+        
+        BigDecimal B1 = new BigDecimal(1);
+        BigDecimal B2 = new BigDecimal(1);
+        
         BigDecimal hamProb;
         for (String word : words) {
             hamProb = new BigDecimal(this.calcHam(word));
-            a = a.multiply(hamProb);
-            b1 *= this.calcSpam(word);
-            b2 *= hamProb.doubleValue();
-//            System.out.println("hamP: " + hamProb +" a: " + a +" b1: " + b1 +" b2: " + b2);
+//            a = a.multiply(hamProb);
+//            b1 *= this.calcSpam(word);
+//            b2 *= hamProb.doubleValue();
+//            
+            B1 = B1.multiply(new BigDecimal(this.calcSpam(word)));
+            B2=B2.multiply(hamProb);
+//            System.out.println("hamP: " + "" +" a: " + a +" b1: " + b1 +" b2: " + b2);
+//            System.out.println("b1: " + b1 + " b2: " + b2 +" B1: " + B1 +" B2: " + B2 );
+
 
         }
         
 //        System.out.println("B1: " + b1 + "B2: " + b2);
          
-        return a.divide(new BigDecimal(b1 + b2)).doubleValue();
+        //return a.divide(new BigDecimal(b1 + b2)).doubleValue();
+        BigDecimal divisor = B1.add(B2);
+        
+//        System.out.println("A: " + a);
+//        System.out.println(" B1: " + B1 +" B2: " + B2 +" divisor: " + divisor);
+        BigDecimal result = a.divide(divisor,2,RoundingMode.HALF_UP);
+        
+        return result.doubleValue();
     }
 
     /**
@@ -194,18 +212,31 @@ public class Stats {
      */
     public double calcSpam(String[] words) {
         BigDecimal a = new BigDecimal(1);
-        double b1 = 1;
-        double b2 = 1;
+//        double b1 = 1;
+//        double b2 = 1;
+        
+        BigDecimal B1 = new BigDecimal(1);
+        BigDecimal B2 = new BigDecimal(1);
+        
         BigDecimal spamProb;
         for (String word : words) {
             spamProb = new BigDecimal(this.calcSpam(word));
-            a = a.multiply(spamProb);
-
-            b1 *= this.calcHam(word);
-            b2 *= spamProb.doubleValue();
+//            a = a.multiply(spamProb);
+//
+//            b1 *= this.calcHam(word);
+//            b2 *= spamProb.doubleValue();
+            
+            B1 = B1.multiply(new BigDecimal(this.calcHam(word)));
+            B2 = B2.multiply(spamProb);
         }
-
-        return a.divide(new BigDecimal(b1 + b2)).doubleValue();
+        
+        BigDecimal divisor = B1.add(B2);
+        BigDecimal result = a.divide(divisor,2,RoundingMode.HALF_UP);
+        
+        return result.doubleValue();
+        
+        
+//        return a.divide(new BigDecimal(b1 + b2)).doubleValue();
     }
 
     /**

@@ -25,7 +25,7 @@ public class MailReader {
     private MailContentHandler handler;
     private MimeStreamParser parser;
 
-    private final int MAX_CALIBRATION_ITERATIONS = 100;
+    private final int MAX_CALIBRATION_ITERATIONS = 10; //100
     private final double STEPS = 0.00001;// 0.00001;//0.001;
 
     /**
