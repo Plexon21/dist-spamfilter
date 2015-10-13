@@ -180,7 +180,7 @@ public class Stats {
         BigDecimal hamProb;
         for (String word : words) {
             hamProb = new BigDecimal(this.calcHam(word));
-//            a = a.multiply(hamProb);
+            a = a.multiply(hamProb);
 //            b1 *= this.calcSpam(word);
 //            b2 *= hamProb.doubleValue();
 //            
@@ -221,7 +221,7 @@ public class Stats {
         BigDecimal spamProb;
         for (String word : words) {
             spamProb = new BigDecimal(this.calcSpam(word));
-//            a = a.multiply(spamProb);
+            a = a.multiply(spamProb);
 //
 //            b1 *= this.calcHam(word);
 //            b2 *= spamProb.doubleValue();
