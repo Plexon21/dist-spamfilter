@@ -101,8 +101,14 @@ public class Stats {
         return this.alpha; // TODO: anstelle [1,1]
     }
 
-    public Set<String> getWords() {
-        return this.words.keySet();
+//    public Set<String> getWords() {
+//        return this.words.keySet();
+//    }
+    
+    public String[] getWords()
+    {
+    	Set<String> set = this.words.keySet();
+    	return set.toArray(new String[set.size()]);
     }
 
     /**
@@ -148,7 +154,7 @@ public class Stats {
 
         if (value == 0) {
             value = this.alpha[this.HAM];
-            // System.out.println("MISSING HAM VALUE: " + word + " -> " + value);
+//            System.out.println("MISSING HAM VALUE: " + word + " -> " + value);
         }
 
         return value / (double) this.HAM_SIZE;
@@ -169,11 +175,14 @@ public class Stats {
         for (String word : words) {
             hamProb = new BigDecimal(this.calcHam(word));
             a = a.multiply(hamProb);
-
             b1 *= this.calcSpam(word);
             b2 *= hamProb.doubleValue();
-        }
+//            System.out.println("hamP: " + hamProb +" a: " + a +" b1: " + b1 +" b2: " + b2);
 
+        }
+        
+//        System.out.println("B1: " + b1 + "B2: " + b2);
+         
         return a.divide(new BigDecimal(b1 + b2)).doubleValue();
     }
 

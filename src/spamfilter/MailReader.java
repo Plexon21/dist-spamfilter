@@ -87,7 +87,8 @@ public class MailReader {
             //
             // String[] topWords = MailReader.tupleToString(topN, this.TOP_N);
 
-            double hamProbability = stats.calcHam((String[]) stats.getWords().toArray());
+//            double hamProbability = stats.calcHam((String[]) stats.getWords().toArray());
+          double hamProbability = stats.calcHam(this.stats.getWords());
 
             if (hamProbability >= this.CERTAINTY) {
                 counter++;
@@ -124,7 +125,9 @@ public class MailReader {
             //
             // String[] topWords = MailReader.tupleToString(topN, this.TOP_N);
 
-            double spamProbability = stats.calcSpam((String[]) stats.getWords().toArray());
+//            double spamProbability = stats.calcSpam((String[]) stats.getWords().toArray());
+            double spamProbability = stats.calcSpam(this.stats.getWords());
+
 
             if (spamProbability >= this.CERTAINTY) {
                 counter++;
@@ -155,8 +158,10 @@ public class MailReader {
 
             String[] topWords = MailReader.tupleToString(topN, this.TOP_N);
 
-            double hamProbability = stats.calcHam((String[]) stats.getWords().toArray());
+//            double hamProbability = stats.calcHam((String[]) stats.getWords().toArray());
+            double hamProbability = stats.calcHam(this.stats.getWords());
 
+            
             if (hamProbability >= this.CERTAINTY) {
                 counter++;
             }
@@ -185,7 +190,8 @@ public class MailReader {
 
             String[] topWords = MailReader.tupleToString(topN, this.TOP_N);
 
-            double spamProbability = stats.calcSpam((String[]) stats.getWords().toArray());
+//            double spamProbability = stats.calcSpam((String[]) stats.getWords().toArray());
+            double spamProbability = stats.calcSpam(this.stats.getWords());
 
             if (spamProbability >= this.CERTAINTY) {
                 counter++;
